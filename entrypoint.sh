@@ -4,21 +4,6 @@
 localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8
 export LANG=zh_CN.UTF-8
 
-if [ $DB_HOST == 127.0.0.1 ]; then
-    if [ ! -d "/var/lib/mysql/$DB_NAME" ]; then
-        mysql_install_db --user=mysql --datadir=/var/lib/mysql
-        mysqld_safe &
-        sleep 5s
-        mysql -uroot -e "create database jumpserver default charset 'utf8'; grant all on jumpserver.* to 'jumpserver'@'127.0.0.1' identified by '$DB_PASSWORD'; flush privileges;"
-    else
-        mysqld_safe &
-    fi
-fi
-
-if [ $REDIS_HOST == 127.0.0.1 ]; then
-    redis-server &
-fi
-
 if [ ! -f "/opt/jumpserver/config.yml" ]; then
     cp /opt/jumpserver/config_example.yml /opt/jumpserver/config.yml
     sed -i "s/SECRET_KEY:/SECRET_KEY: $SECRET_KEY/g" /opt/jumpserver/config.yml
@@ -35,18 +20,27 @@ if [ ! -f "/opt/jumpserver/config.yml" ]; then
     sed -i "s/REDIS_HOST: 127.0.0.1/REDIS_HOST: $REDIS_HOST/g" /opt/jumpserver/config.yml
     sed -i "s/REDIS_PORT: 6379/REDIS_PORT: $REDIS_PORT/g" /opt/jumpserver/config.yml
     sed -i "s/# REDIS_PASSWORD: /REDIS_PASSWORD: $REDIS_PASSWORD/g" /opt/jumpserver/config.yml
+    sed -i "s/# WINDOWS_SKIP_ALL_MANUAL_PASSWORD: False/WINDOWS_SKIP_ALL_MANUAL_PASSWORD: True/g" /opt/jumpserver/config.yml
 fi
 
-if [ ! -f "/opt/coco/config.yml" ]; then
-    cp /opt/coco/config_example.yml /opt/coco/config.yml
-    sed -i "s/BOOTSTRAP_TOKEN: <PleasgeChangeSameWithJumpserver>/BOOTSTRAP_TOKEN: $BOOTSTRAP_TOKEN/g" /opt/coco/config.yml
-    sed -i "s/# LOG_LEVEL: INFO/LOG_LEVEL: ERROR/g" /opt/coco/config.yml
+if [ ! -f "/opt/koko/config.yml" ]; then
+    cp /opt/koko/config_example.yml /opt/koko/config.yml
+    sed -i "s/BOOTSTRAP_TOKEN: <PleasgeChangeSameWithJumpserver>/BOOTSTRAP_TOKEN: $BOOTSTRAP_TOKEN/g" /opt/koko/config.yml
+    sed -i "s/# LOG_LEVEL: INFO/LOG_LEVEL: ERROR/g" /opt/koko/config.yml
+    sed -i "s@# SFTP_ROOT: /tmp@SFTP_ROOT: /@g" /opt/koko/config.yml
+    sed -i "s/# SHARE_ROOM_TYPE: local/SHARE_ROOM_TYPE: redis/g" /opt/koko/config.yml
+    sed -i "s/# REDIS_HOST: 127.0.0.1/REDIS_HOST: $REDIS_HOST/g" /opt/koko/config.yml
+    sed -i "s/# REDIS_PORT: 6379/REDIS_PORT: $REDIS_PORT/g" /opt/koko/config.yml
+    sed -i "s/# REDIS_PASSWORD:/REDIS_PASSWORD: $REDIS_PASSWORD/g" /opt/koko/config.yml
+    sed -i "s/# REDIS_DB_ROOM:/REDIS_DB_ROOM: 6/g" /opt/koko/config.yml
 fi
 
 source /opt/py3/bin/activate
-cd /opt/jumpserver && ./jms start all -d
+cd /opt/jumpserver && ./jms start -d
+cd /opt/koko && ./koko -d
 /etc/init.d/guacd start
-sh /config/tomcat8/bin/startup.sh
-cd /opt/coco && ./cocod start -d
+sh /config/tomcat9/bin/startup.sh
 /usr/sbin/nginx &
+
+echo "Jumpserver $Version"
 tail -f /opt/readme.txt
