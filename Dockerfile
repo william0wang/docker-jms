@@ -73,8 +73,8 @@ RUN set -ex \
     && rm -rf /var/cache/yum/* \
     && rm -rf ~/.cache/pip
 
-COPY allinone/readme.txt readme.txt
-COPY allinone/entrypoint.sh .
+COPY readme.txt ./readme.txt
+COPY entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 VOLUME /opt/jumpserver/data/media
