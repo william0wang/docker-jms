@@ -1,9 +1,6 @@
 #!/bin/bash
 #
 
-localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8
-export LANG=zh_CN.UTF-8
-
 if [ ! -f "/opt/jumpserver/config.yml" ]; then
     cp /opt/jumpserver/config_example.yml /opt/jumpserver/config.yml
     sed -i "s/SECRET_KEY:/SECRET_KEY: $SECRET_KEY/g" /opt/jumpserver/config.yml
@@ -42,5 +39,5 @@ cd /opt/koko && ./koko -d
 sh /config/tomcat9/bin/startup.sh
 /usr/sbin/nginx &
 
-echo "Jumpserver $Version"
+echo "Jumpserver ALL $Version"
 tail -f /opt/readme.txt

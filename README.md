@@ -51,21 +51,21 @@ The main reasons are:
     - DB_PASSWORD = xxxx
     - DB_NAME = jumpserver
 
-    - REDIS_HOST = 127.0.0.1
-    - REDIS_PORT = 3306
-    - REDIS_PASSWORD =
+    - REDIS_HOST = redis_host
+    - REDIS_PORT = 6379
+    - REDIS_PASSWORD = xxxx
 
     - JUMPSERVER_KEY_DIR=/config/guacamole/keys \
     - GUACAMOLE_HOME=/config/guacamole \
     - JUMPSERVER_SERVER=http://127.0.0.1:8080
 
-    - VOLUME /opt/jumpserver/data/media
+    - VOLUME /opt/jumpserver/data
     - VOLUME /var/lib/mysql
 
 
 ```bash
 docker run --name jms_all -d \
-  -v /opt/jumpserver/media:/opt/jumpserver/data/media \
+  -v /opt/jumpserver/data:/opt/jumpserver/data \
   -p 80:80 \
   -p 2222:2222 \
   -e SECRET_KEY=xxxxxx \
@@ -78,6 +78,6 @@ docker run --name jms_all -d \
   -e REDIS_HOST=192.168.x.x \
   -e REDIS_PORT=6379 \
   -e REDIS_PASSWORD=password \
-  jumpserver/jms_all:1.5.8
+  jumpserver/jms_all:2.1.0
 
 ```

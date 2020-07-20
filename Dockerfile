@@ -1,27 +1,27 @@
 FROM centos:7
 WORKDIR /opt
-ARG Version=1.5.8
+ARG Version=2.1.0
 ENV Version=${Version} \
-    GUAC_VER=1.0.0 \
-    TOMCAT_VER=9.0.34
+    LANG=en_US.utf8
+
 RUN set -ex \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "LANG=en_US.utf8" > /etc/locale.conf \
     && yum -y install wget gcc epel-release git yum-utils \
     && yum -y install python36 python36-devel \
     && yum -y localinstall --nogpgcheck https://mirrors.aliyun.com/rpmfusion/free/el/rpmfusion-free-release-7.noarch.rpm https://mirrors.aliyun.com/rpmfusion/nonfree/el/rpmfusion-nonfree-release-7.noarch.rpm \
-    && yum install -y java-1.8.0-openjdk libtool \
-    && mkdir /usr/local/lib/freerdp/ \
-    && ln -s /usr/local/lib/freerdp /usr/lib64/freerdp \
-    && yum install -y cairo-devel libjpeg-turbo-devel libpng-devel uuid-devel \
-    && yum install -y ffmpeg-devel freerdp1.2-devel libvncserver-devel pulseaudio-libs-devel openssl-devel libvorbis-devel libwebp-devel \
+    && yum install -y java-1.8.0-openjdk \
+    && yum install -y cairo-devel libjpeg-turbo-devel libpng-devel libtool uuid-devel \
+    && yum install -y ffmpeg-devel freerdp-devel libssh2-devel libvncserver-devel pulseaudio-libs-devel openssl-devel libvorbis-devel libwebp-devel \
     && echo -e "[nginx-stable]\nname=nginx stable repo\nbaseurl=http://nginx.org/packages/centos/\$releasever/\$basearch/\ngpgcheck=1\nenabled=1\ngpgkey=https://nginx.org/keys/nginx_signing.key" > /etc/yum.repos.d/nginx.repo \
     && rpm --import https://nginx.org/keys/nginx_signing.key \
     && yum -y install nginx \
     && rm -rf /etc/nginx/conf.d/default.conf \
     && mkdir -p /config/guacamole /config/guacamole/lib /config/guacamole/extensions /config/guacamole/record /config/guacamole/drive \
     && chown daemon:daemon /config/guacamole/record /config/guacamole/drive \
+    && TOMCAT_VER=`curl -s http://tomcat.apache.org/tomcat-9.0-doc/ | grep 'Version ' | awk '{print $2}' | sed 's/.$//'` \
     && wget https://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v${TOMCAT_VER}/bin/apache-tomcat-${TOMCAT_VER}.tar.gz \
-    && tar xf apache-tomcat-${TOMCAT_VER}.tar.gz -C /config \
+    && tar -xf apache-tomcat-${TOMCAT_VER}.tar.gz -C /config \
     && rm -rf apache-tomcat-${TOMCAT_VER}.tar.gz \
     && mv /config/apache-tomcat-${TOMCAT_VER} /config/tomcat9 \
     && rm -rf /config/tomcat9/webapps/* \
@@ -34,15 +34,21 @@ RUN set -ex \
     && rm -rf /var/cache/yum/*
 
 RUN set -ex \
-    && git clone --depth=1 https://github.com/jumpserver/jumpserver.git \
-    && git clone --depth=1 https://github.com/jumpserver/docker-guacamole.git \
-    && wget https://github.com/jumpserver/koko/releases/download/${Version}/koko-master-linux-amd64.tar.gz \
-    && tar xf koko-master-linux-amd64.tar.gz \
-    && mv kokodir koko \
-    && chown -R root:root koko \
-    && wget https://github.com/jumpserver/luna/releases/download/${Version}/luna.tar.gz \
-    && tar xf luna.tar.gz \
-    && chown -R root:root luna \
+    && wget https://github.com/jumpserver/jumpserver/releases/download/v${Version}/jumpserver-v${Version}.tar.gz \
+    && tar -xf jumpserver-v${Version}.tar.gz \
+    && mv jumpserver-v${Version} jumpserver \
+    && wget https://github.com/jumpserver/koko/releases/download/v${Version}/koko-v${Version}-linux-amd64.tar.gz \
+    && tar -xf koko-v${Version}-linux-amd64.tar.gz \
+    && mv koko-v${Version}-linux-amd64 koko \
+    && wget -O guacamole-v${Version}.tar.gz https://github.com/jumpserver/docker-guacamole/archive/v${Version}.tar.gz \
+    && tar -xf guacamole-v${Version}.tar.gz \
+    && mv docker-guacamole-${Version} guacamole \
+    && wget https://github.com/jumpserver/lina/releases/download/v${Version}/lina-v${Version}.tar.gz \
+    && tar -xf lina-v${Version}.tar.gz \
+    && mv lina-v${Version} lina \
+    && wget https://github.com/jumpserver/luna/releases/download/v${Version}/luna-v${Version}.tar.gz \
+    && tar -xf luna-v${Version}.tar.gz \
+    && mv luna-v${Version} luna \
     && yum -y install $(cat /opt/jumpserver/requirements/rpm_requirements.txt) \
     && python3.6 -m venv /opt/py3 \
     && echo -e "[easy_install]\nindex_url = https://mirrors.aliyun.com/pypi/simple/" > ~/.pydistutils.cfg \
@@ -50,34 +56,34 @@ RUN set -ex \
     && pip install wheel \
     && pip install --upgrade pip setuptools \
     && pip install -r /opt/jumpserver/requirements/requirements.txt \
-    && cd docker-guacamole \
-    && tar xf guacamole-server-${GUAC_VER}.tar.gz \
-    && cd guacamole-server-${GUAC_VER} \
-    && autoreconf -fi \
+    && cd guacamole \
+    && tar -xf guacamole-server-1.2.0.tar.gz \
+    && cd guacamole-server-1.2.0 \
     && ./configure --with-init-dir=/etc/init.d \
     && make \
     && make install \
     && cd .. \
-    && ln -sf /opt/docker-guacamole/guacamole-${GUAC_VER}.war /config/tomcat9/webapps/ROOT.war \
-    && ln -sf /opt/docker-guacamole/guacamole-auth-jumpserver-${GUAC_VER}.jar /config/guacamole/extensions/guacamole-auth-jumpserver-${GUAC_VER}.jar \
-    && ln -sf /opt/docker-guacamole/root/app/guacamole/guacamole.properties /config/guacamole/guacamole.properties \
-    && rm -rf guacamole-server-${GUAC_VER} \
-    && tar xf ssh-forward.tar.gz -C /bin/ \
+    && ln -sf /opt/guacamole/guacamole-1.0.0.war /config/tomcat9/webapps/ROOT.war \
+    && ln -sf /opt/guacamole/guacamole-auth-jumpserver-1.0.0.jar /config/guacamole/extensions/guacamole-auth-jumpserver-1.0.0.jar \
+    && ln -sf /opt/guacamole/root/app/guacamole/guacamole.properties /config/guacamole/guacamole.properties \
+    && rm -rf guacamole-server-1.2.0 \
+    && tar -xf ssh-forward.tar.gz -C /bin/ \
     && chmod +x /bin/ssh-forward \
     && ldconfig \
     && cd /opt \
-    && wget -O /etc/nginx/conf.d/jumpserver.conf https://demo.jumpserver.org/download/nginx/conf.d/jumpserver.conf \
+    && wget -O /etc/nginx/conf.d/jumpserver.conf https://demo.jumpserver.org/download/nginx/conf.d/${Version}/jumpserver.conf \
+    && chown -R root:root /opt/* \
     && yum clean all \
     && rm -rf /var/cache/yum/* \
     && rm -rf /opt/*.tar.gz \
     && rm -rf /var/cache/yum/* \
     && rm -rf ~/.cache/pip
 
-COPY readme.txt ./readme.txt
-COPY entrypoint.sh ./entrypoint.sh
+COPY allinone/readme.txt readme.txt
+COPY allinone/entrypoint.sh .
 RUN chmod +x ./entrypoint.sh
 
-VOLUME /opt/jumpserver/data/media
+VOLUME /opt/jumpserver/data
 
 ENV SECRET_KEY=kWQdmdCQKjaWlHYpPhkNQDkfaRulM6YnHctsHLlSPs8287o2kW \
     BOOTSTRAP_TOKEN=KXOeyNgDeTdpeu9q \
